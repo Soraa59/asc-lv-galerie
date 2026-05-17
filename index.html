@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ASC-LV Galerie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);--gold:#c9a84c;--gold2:#e8c97a;--text:#f0ede8;--text2:#888;--text3:#555}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+.app{position:relative;z-index:1;max-width:500px;margin:0 auto;padding:0 16px 120px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 0 0}
+.logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.logo span{color:var(--text3);font-size:11px;display:block;letter-spacing:6px;font-family:'DM Sans',sans-serif;font-weight:300;margin-top:2px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:16px 0;opacity:.25}
+.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.search-wrap input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 12px 10px 36px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .2s}
+.search-wrap input::placeholder{color:var(--text3)}
+.search-wrap input:focus{border-color:var(--border2)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.count-bar{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.sort-btn{font-size:11px;color:var(--text3);background:transparent;border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;letter-spacing:.5px;transition:all .2s;font-family:'DM Sans',sans-serif}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:14px}
+.filters::-webkit-scrollbar{display:none}
+.cat-btn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.5px;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.cat-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.08)}
+.cat-count{font-size:10px;opacity:.6}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.skeleton{border-radius:14px;background:var(--bg2);border:1px solid var(--border);aspect-ratio:3/4;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}
+.card{border-radius:14px;overflow:hidden;background:var(--bg2);border:1px solid var(--border);position:relative;aspect-ratio:3/4;cursor:pointer;transition:transform .2s}
+.card:active{transform:scale(0.97)}
+.card img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
+.card:hover img{transform:scale(1.04)}
+.card-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 55%)}
+.card-info{position:absolute;bottom:0;left:0;right:0;padding:10px}
+.card-name{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:#fff;line-height:1.2;margin-bottom:2px}
+.card-cat{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:.5px;text-transform:uppercase}
+.card-actions{position:absolute;top:7px;right:7px;display:none;flex-direction:column;gap:5px}
+.admin-mode .card-actions{display:flex}
+.action-btn{width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.action-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.select-overlay{position:absolute;inset:0;border-radius:14px;border:2px solid var(--gold);background:rgba(201,168,76,0.15);display:none;align-items:flex-start;justify-content:flex-end;padding:8px}
+.select-overlay.show{display:flex}
+.check-icon{width:22px;height:22px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center}
+.check-icon svg{width:12px;height:12px;stroke:#0a0a0a;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.empty{grid-column:1/-1;padding:4rem 1rem;text-align:center;color:var(--text3)}
+.empty svg{width:36px;height:36px;stroke:var(--text3);fill:none;stroke-width:1.2;stroke-linecap:round;margin-bottom:12px}
+.empty p{font-size:13px;letter-spacing:.5px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:10px 20px;font-size:13px;color:var(--text);opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:rgba(30,107,74,0.5);color:#4ade80}
+.toast.err{border-color:rgba(192,57,43,0.4);color:#f87171}
+.back-top{position:fixed;bottom:90px;right:16px;width:38px;height:38px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:50}
+.back-top.show{display:flex}
+.back-top svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fullscreen{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center}
+.fullscreen.open{display:flex}
+.fs-img-wrap{width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;user-select:none}
+.fs-img-wrap img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none}
+.fs-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}
+.fs-close svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.fs-info{padding:16px 20px 40px;text-align:center;width:100%}
+.fs-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--text);margin-bottom:4px}
+.fs-cat{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.fs-nav{display:flex;align-items:center;gap:20px;margin-top:12px;justify-content:center}
+.fs-nav-btn{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fs-nav-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fs-counter{font-size:12px;color:var(--text3)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:24px 24px 0 0;padding:20px 20px 40px;width:100%;max-width:500px;animation:slideUp .3s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--gold);letter-spacing:1px;margin-bottom:18px;text-align:center}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border .2s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.field select option{background:var(--bg3)}
+.preview-zone{width:100%;height:140px;border:1px dashed var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;margin-bottom:12px;background:var(--bg3)}
+.preview-zone img{width:100%;height:100%;object-fit:cover}
+.preview-placeholder{text-align:center;color:var(--text3)}
+.preview-placeholder svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;margin-bottom:8px}
+.preview-placeholder p{font-size:12px}
+.modal-btns{display:flex;gap:10px;margin-top:14px}
+.btn-cancel{flex:1;padding:13px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
+.btn-submit{flex:2;padding:13px;border-radius:12px;border:none;background:var(--gold);color:#0a0a0a;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .2s}
+.btn-submit:disabled{opacity:.5}
+.pwd-field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;letter-spacing:4px;outline:none;text-align:center;-webkit-appearance:none}
+.pwd-field input:focus{border-color:var(--gold)}
+.pwd-field input::placeholder{letter-spacing:1px;font-size:13px;color:var(--text3)}
+.pwd-err{font-size:12px;color:#f87171;text-align:center;margin:8px 0;display:none}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,10,0.92);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:10px 16px max(10px,env(safe-area-inset-bottom));z-index:50;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nav-section{display:flex;gap:8px;align-items:center}
+.nav-btn{padding:9px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap}
+.nav-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active-admin{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.08)}
+.nav-btn.add-btn{border-color:var(--gold);background:var(--gold);color:#0a0a0a;font-weight:500}
+.nav-btn.del-multi{border-color:rgba(192,57,43,0.4);color:#f87171;display:none}
+.nav-btn.del-multi.show{display:flex}
+.admin-badge{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+<div class="fullscreen" id="fullscreen">
+  <button class="fs-close" onclick="closeFs()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="fs-img-wrap" id="fs-img-wrap"><img id="fs-img" src="" alt=""></div>
+  <div class="fs-info">
+    <div class="fs-name" id="fs-name"></div>
+    <div class="fs-cat" id="fs-cat"></div>
+    <div class="fs-nav">
+      <button class="fs-nav-btn" onclick="fsNav(-1)"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <span class="fs-counter" id="fs-counter"></span>
+      <button class="fs-nav-btn" onclick="fsNav(1)"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="login-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Accès Admin</div>
+    <div class="pwd-field"><input type="password" id="pwd-inp" placeholder="Mot de passe" autocomplete="off"></div>
+    <div class="pwd-err" id="pwd-err">Mot de passe incorrect</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeLogin()">Annuler</button>
+      <button class="btn-submit" onclick="checkPwd()">Connexion</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Ajouter un personnage</div>
+    <div class="preview-zone" id="preview-zone" onclick="document.getElementById('file-inp').click()">
+      <div class="preview-placeholder">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Appuyer pour choisir</p>
+      </div>
+    </div>
+    <input type="file" id="file-inp" accept="image/*" style="display:none" onchange="handleFile(event)">
+    <div class="field"><label>Nom</label><input type="text" id="inp-name" placeholder="Nom du personnage"></div>
+    <div class="field">
+      <label>Catégorie</label>
+      <select id="inp-cat">
+        <option value="">Choisir...</option>
+        <option value="t1">T1 — Afrique sub.</option>
+        <option value="t2">T2 — Maghreb</option>
+        <option value="t3">T3 — Asie</option>
+        <option value="t4">T4 — Europe occ.</option>
+        <option value="t5">T5 — Europe est</option>
+        <option value="t6">T6 — Latine</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAdd()">Annuler</button>
+      <button class="btn-submit" id="btn-submit" onclick="addImage()">Ajouter</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Renommer</div>
+    <div class="field"><label>Nouveau nom</label><input type="text" id="rename-inp" placeholder="Nom du personnage"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeRename()">Annuler</button>
+      <button class="btn-submit" onclick="confirmRename()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+  <div class="topbar"><div class="logo">ASC — LV<span>Galerie</span></div></div>
+  <div class="divider"></div>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search" placeholder="Rechercher un personnage..." oninput="renderGrid()">
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="toolbar">
+    <div class="count-bar" id="count-bar"></div>
+    <button class="sort-btn" id="sort-btn" onclick="toggleSort()">Date ↓</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+<div class="bottom-nav">
+  <div class="nav-section">
+    <button class="nav-btn" id="nav-lock-btn" onclick="toggleAdmin()">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span id="nav-lock-label">Admin</span>
+    </button>
+    <button class="nav-btn del-multi" id="del-multi-btn" onclick="deleteSelected()">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      <span id="del-multi-label">Supprimer</span>
+    </button>
+  </div>
+  <div class="nav-section">
+    <button class="nav-btn add-btn" id="nav-add-btn" onclick="openAdd()" style="display:none">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ajouter
+    </button>
+  </div>
+</div><script>
+const SUPA_URL='https://iluctpgvhzbijkebojsx.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsdWN0cGd2aHpiaWprZWJvanN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMTc0NzEsImV4cCI6MjA5NDU5MzQ3MX0.EBNRGV150pla4Ek63z584R2UB3ehQcIsLbir5U2buwM';
+const CLOUDINARY_CLOUD='dmnd5yx1d';
+const CLOUDINARY_PRESET='ewnwfwcy';
+const PWD='ASC-LV2026!';
+const SESSION_KEY='asc_admin';
+const CATS=[{id:'all',label:'Tout'},{id:'t1',label:'T1'},{id:'t2',label:'T2'},{id:'t3',label:'T3'},{id:'t4',label:'T4'},{id:'t5',label:'T5'},{id:'t6',label:'T6'}];
+const CAT_FULL={t1:'Afrique sub.',t2:'Maghreb',t3:'Asie',t4:'Europe occ.',t5:'Europe est',t6:'Latine'};
+let active='all',db=[],isAdmin=false,pendingFile=null,uploading=false;
+let sortMode='desc',selected=new Set(),renameId=null,fsItems=[],fsIndex=0;
+let touchStartX=0,touchStartY=0;
+let _sortCycle=['desc','asc','name'];
+function checkSession(){try{if(sessionStorage.getItem(SESSION_KEY)==='1'){isAdmin=true;updateAdminUI();}}catch{}}
+function saveSession(){try{sessionStorage.setItem(SESSION_KEY,'1');}catch{}}
+function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch{}}
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',2500);}
+async function api(path,opts={}){return fetch(SUPA_URL+path,{headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json',...(opts.headers||{})}, ...opts});}
+function showSkeletons(){document.getElementById('grid').innerHTML=Array(6).fill('<div class="skeleton"></div>').join('');}
+async function loadImages(){showSkeletons();try{const r=await api('/rest/v1/images?select=*&order=created_at.desc');const data=await r.json();if(!Array.isArray(data))throw new Error();db=data;renderGrid();}catch{document.getElementById('grid').innerHTML='<div class="empty"><p>Erreur de chargement</p></div>';}}
+function getCounts(){const c={};db.forEach(x=>{c[x.cat]=(c[x.cat]||0)+1;});return c;}
+function renderFilters(){const counts=getCounts();document.getElementById('filters').innerHTML=CATS.map(c=>{const n=c.id==='all'?db.length:(counts[c.id]||0);return`<button class="cat-btn${active===c.id?' active':''}" onclick="setFilter('${c.id}')">${c.label}<span class="cat-count">·${n}</span></button>`;}).join('');}
+function setFilter(id){active=id;selected.clear();renderFilters();renderGrid();}
+function toggleSort(){let i=_sortCycle.indexOf(sortMode);sortMode=_sortCycle[(i+1)%3];const btn=document.getElementById('sort-btn');btn.textContent=sortMode==='desc'?'Date ↓':sortMode==='asc'?'Date ↑':'Nom A-Z';renderGrid();}
+function getSorted(items){if(sortMode==='asc')return[...items].reverse();if(sortMode==='name')return[...items].sort((a,b)=>a.name.localeCompare(b.name));return[...items];}
+function renderGrid(){const q=(document.getElementById('search').value||'').toLowerCase();let items=active==='all'?[...db]:db.filter(x=>x.cat===active);if(q)items=items.filter(x=>x.name.toLowerCase().includes(q));items=getSorted(items);fsItems=items;const grid=document.getElementById('grid');document.getElementById('count-bar').textContent=items.length+' personnage'+(items.length!==1?'s':'');if(!items.length){grid.innerHTML='<div class="empty"><p>Aucun personnage trouvé</p></div>';return;}grid.className='grid'+(isAdmin?' admin-mode':'');grid.innerHTML=items.map((img,i)=>{const sel=selected.has(img.id);return`<div class="card" onclick="cardClick('${img.id}',${i},event)"><img src="${img.url}" alt="${img.name}" loading="lazy"><div class="card-grad"></div><div class="card-info"><div class="card-name">${img.name}</div><div class="card-cat">${CAT_FULL[img.cat]||img.cat}</div></div>${isAdmin?`<div class="card-actions"><button class="action-btn" onclick="openRename('${img.id}','${img.name.replace(/'/g,"\\'")}',event)"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="action-btn" onclick="deleteImg('${img.id}','${img.url}',event)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>`:''}<div class="select-overlay${sel?' show':''}" id="sel-${img.id}"><div class="check-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div></div></div>`;}).join('');updateMultiBtn();}
+function cardClick(id,index,e){if(e.target.closest('.action-btn'))return;if(isAdmin&&selected.size>0){toggleSelect(id);return;}openFs(index);}
+function toggleSelect(id){if(selected.has(id))selected.delete(id);else selected.add(id);const el=document.getElementById('sel-'+id);if(el)el.className='select-overlay'+(selected.has(id)?' show':'');updateMultiBtn();}
+function updateMultiBtn(){const btn=document.getElementById('del-multi-btn');const label=document.getElementById('del-multi-label');if(selected.size>0&&isAdmin){btn.classList.add('show');label.textContent=`Supprimer (${selected.size})`;}else{btn.classList.remove('show');}}
+async function deleteSelected(){if(!selected.size)return;if(!confirm(`Supprimer ${selected.size} image(s) ?`))return;const ids=[...selected];for(const id of ids){try{await api('/rest/v1/images?id=eq.'+id,{method:'DELETE',headers:{'Prefer':'return=minimal'}});}catch{}}db=db.filter(x=>!ids.includes(x.id));selected.clear();renderFilters();renderGrid();toast(ids.length+' supprimée(s)');}
+async function deleteImg(id,url,e){e.stopPropagation();if(!confirm('Supprimer ?'))return;try{await api('/rest/v1/images?id=eq.'+id,{method:'DELETE',headers:{'Prefer':'return=minimal'}});db=db.filter(x=>x.id!==id);renderFilters();renderGrid();toast('Supprimé');}catch{toast('Erreur','err');}}
+function openRename(id,name,e){e.stopPropagation();renameId=id;document.getElementById('rename-inp').value=name;document.getElementById('rename-modal').classList.add('open');setTimeout(()=>document.getElementById('rename-inp').focus(),300);}
+function closeRename(){document.getElementById('rename-modal').classList.remove('open');renameId=null;}
+async function confirmRename(){const newName=document.getElementById('rename-inp').value.trim();if(!newName||!renameId)return;try{await api('/rest/v1/images?id=eq.'+renameId,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({name:newName})});const img=db.find(x=>x.id===renameId);if(img)img.name=newName;closeRename();renderGrid();toast('Renommé');}catch{toast('Erreur','err');}}
+function openFs(index){if(!fsItems.length)return;fsIndex=index;updateFs();document.getElementById('fullscreen').classList.add('open');}
+function closeFs(){document.getElementById('fullscreen').classList.remove('open');}
+function updateFs(){const img=fsItems[fsIndex];if(!img)return;document.getElementById('fs-img').src=img.url;document.getElementById('fs-img').alt=img.name;document.getElementById('fs-name').textContent=img.name;document.getElementById('fs-cat').textContent=(CAT_FULL[img.cat]||img.cat).toUpperCase();document.getElementById('fs-counter').textContent=(fsIndex+1)+' / '+fsItems.length;}
+function fsNav(dir){fsIndex=(fsIndex+dir+fsItems.length)%fsItems.length;updateFs();}const fsWrap=document.getElementById('fs-img-wrap');
+fsWrap.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
+fsWrap.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchStartX;const dy=Math.abs(e.changedTouches[0].clientY-touchStartY);if(Math.abs(dx)>50&&dy<60){fsNav(dx<0?1:-1);}},{passive:true});
+document.addEventListener('keydown',e=>{if(document.getElementById('fullscreen').classList.contains('open')){if(e.key==='ArrowLeft')fsNav(-1);if(e.key==='ArrowRight')fsNav(1);if(e.key==='Escape')closeFs();}});
+function toggleAdmin(){if(isAdmin){isAdmin=false;clearSession();selected.clear();updateAdminUI();return;}document.getElementById('login-modal').classList.add('open');document.getElementById('pwd-inp').value='';document.getElementById('pwd-err').style.display='none';setTimeout(()=>document.getElementById('pwd-inp').focus(),300);}
+function closeLogin(){document.getElementById('login-modal').classList.remove('open');}
+function checkPwd(){if(document.getElementById('pwd-inp').value===PWD){isAdmin=true;saveSession();closeLogin();updateAdminUI();toast('Mode admin activé');}else{document.getElementById('pwd-err').style.display='block';document.getElementById('pwd-inp').value='';}}
+document.getElementById('pwd-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkPwd();});
+function updateAdminUI(){renderGrid();const addBtn=document.getElementById('nav-add-btn');const lockBtn=document.getElementById('nav-lock-btn');const label=document.getElementById('nav-lock-label');if(isAdmin){addBtn.style.display='flex';lockBtn.classList.add('active-admin');label.innerHTML='Admin <span class="admin-badge"></span>';}else{addBtn.style.display='none';lockBtn.classList.remove('active-admin');label.textContent='Admin';}}
+function openAdd(){pendingFile=null;document.getElementById('inp-name').value='';document.getElementById('inp-cat').value='';document.getElementById('preview-zone').innerHTML='<div class="preview-placeholder"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p>Appuyer pour choisir</p></div>';document.getElementById('file-inp').value='';document.getElementById('btn-submit').textContent='Ajouter';document.getElementById('btn-submit').disabled=false;document.getElementById('add-modal').classList.add('open');}
+function closeAdd(){document.getElementById('add-modal').classList.remove('open');}
+function handleFile(e){const file=e.target.files[0];if(!file)return;pendingFile=file;const reader=new FileReader();reader.onload=ev=>document.getElementById('preview-zone').innerHTML=`<img src="${ev.target.result}" alt="preview">`;reader.readAsDataURL(file);}
+async function addImage(){if(uploading)return;const name=document.getElementById('inp-name').value.trim();const cat=document.getElementById('inp-cat').value;if(!name||!cat||!pendingFile){toast('Remplis tous les champs','err');return;}uploading=true;const btn=document.getElementById('btn-submit');btn.textContent='Upload...';btn.disabled=true;try{const formData=new FormData();formData.append('file',pendingFile);formData.append('upload_preset',CLOUDINARY_PRESET);const upResp=await fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/image/upload',{method:'POST',body:formData});if(!upResp.ok)throw new Error(await upResp.text());const upData=await upResp.json();const publicUrl=upData.secure_url;const insResp=await api('/rest/v1/images',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({name,cat,url:publicUrl})});const inserted=await insResp.json();if(!Array.isArray(inserted)||!inserted[0])throw new Error(JSON.stringify(inserted));db.unshift(inserted[0]);active=cat;renderFilters();renderGrid();closeAdd();toast('Personnage ajouté !');}catch(err){toast('Erreur: '+err.message,'err');}finally{uploading=false;btn.textContent='Ajouter';btn.disabled=false;}}
+window.addEventListener('scroll',()=>{const bt=document.getElementById('back-top');bt.className='back-top'+(window.scrollY>300?' show':'');},{passive:true});
+checkSession();renderFilters();loadImages();
+</script>
+</body>
+</html>
