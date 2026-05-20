@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ASC-LV Galerie</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ASC-LV">
+<meta name="theme-color" content="#c9a84c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -186,8 +190,8 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
 <script>
 const CLOUD='dmnd5yx1d';
 const PRESET='ewnwfwcy';
-const API_KEY='778643512866794';
-const API_SECRET='1XvpXF10EArpAH08tvmHGfhtbuM';
+const BIN_ID='6a0d94846877513b27a1d420';
+const BIN_KEY='$2a$10$8MLSunlG/.bS3rYwgb7tMeX453HjOPerGaJi1TPgBfaIYCDMQ8SVm';
 const PWD='ASC-LV2026!';
 const SESSION_KEY='asc_admin';
 const CATS=[{id:'all',label:'Tout'},{id:'t1',label:'T1'},{id:'t2',label:'T2'},{id:'t3',label:'T3'},{id:'t4',label:'T4'},{id:'t5',label:'T5'},{id:'t6',label:'T6'}];
@@ -204,36 +208,24 @@ function toast(msg,type='ok'){const t=document.getElementById('toast');t.textCon
 async function loadImages(){
   document.getElementById('grid').innerHTML=Array(6).fill('<div class="skeleton"></div>').join('');
   try{
-    const ts=Math.round(Date.now()/1000);
-    const str=`folder=asc-galerie&max_results=500&resource_type=image&timestamp=${ts}${API_SECRET}`;
-    const sig=await sha1(str);
-    const fd=new FormData();
-    fd.append('api_key',API_KEY);
-    fd.append('timestamp',ts);
-    fd.append('signature',sig);
-    fd.append('folder','asc-galerie');
-    fd.append('max_results','500');
-    fd.append('resource_type','image');
-    const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/resources/image`,{
-      method:'GET',
-      headers:{'Authorization':'Basic '+btoa(API_KEY+':'+API_SECRET)}
+    const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
+      headers:{'X-Master-Key':BIN_KEY,'X-Bin-Meta':false}
     });
     const data=await r.json();
-    db=(data.resources||[]).map(x=>({
-      id:x.public_id,
-      url:x.secure_url,
-      name:(x.context&&x.context.custom&&x.context.custom.name)||x.public_id.split('/').pop(),
-      cat:(x.context&&x.context.custom&&x.context.custom.cat)||'t1'
-    }));
+    db=Array.isArray(data)?data:(data.images||[]);
     renderGrid();
   }catch(e){
+    db=[];
     document.getElementById('grid').innerHTML='<div class="empty"><p>Aucune image — ajoutez-en une !</p></div>';
   }
 }
 
-async function sha1(str){
-  const buf=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+async function saveDB(){
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':BIN_KEY},
+    body:JSON.stringify(db)
+  });
 }
 
 function renderFilters(){
@@ -264,19 +256,10 @@ function renderGrid(){
 async function deleteImg(id,e){
   e.stopPropagation();
   if(!confirm('Supprimer ?'))return;
-  try{
-    const ts=Math.round(Date.now()/1000);
-    const sig=await sha1(`public_id=${id}&timestamp=${ts}${API_SECRET}`);
-    const fd=new FormData();
-    fd.append('public_id',id);
-    fd.append('api_key',API_KEY);
-    fd.append('timestamp',ts);
-    fd.append('signature',sig);
-    await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/destroy`,{method:'POST',body:fd});
-    db=db.filter(x=>x.id!==id);
-    renderGrid();
-    toast('Supprimé');
-  }catch{toast('Erreur','err');}
+  db=db.filter(x=>x.id!==id);
+  await saveDB();
+  renderGrid();
+  toast('Supprimé');
 }
 
 function openFs(i){fsIndex=i;updateFs();document.getElementById('fullscreen').classList.add('open');}
@@ -310,12 +293,13 @@ async function addImage(){
     fd.append('file',pendingFile);
     fd.append('upload_preset',PRESET);
     fd.append('folder','asc-galerie');
-    fd.append('context','name='+name+'|cat='+cat);
-    fd.append('tags','asc-galerie');
     const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd});
     if(!r.ok)throw new Error(await r.text());
     const data=await r.json();
-    db.unshift({id:data.public_id,url:data.secure_url,name,cat});
+    const url=data.secure_url.replace('/upload/','/upload/q_auto,f_auto,w_800/');
+    const newImg={id:data.public_id,url,name,cat,date:Date.now()};
+    db.unshift(newImg);
+    await saveDB();
     active=cat;renderFilters();renderGrid();
     closeAdd();toast('Personnage ajouté !');
   }catch(err){toast('Erreur: '+err.message,'err');}
