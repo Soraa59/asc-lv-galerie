@@ -188,10 +188,9 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
   </div>
 </div>
 <script>
+const API_BASE='https://project-y7c6x.vercel.app';
 const CLOUD='dmnd5yx1d';
 const PRESET='ewnwfwcy';
-const BIN_ID='6a0d94846877513b27a1d420';
-const BIN_KEY='$2a$10$8MLSunlG/.bS3rYwgb7tMeX453HjOPerGaJi1TPgBfaIYCDMQ8SVm';
 const PWD='ASC-LV2026!';
 const SESSION_KEY='asc_admin';
 const CATS=[{id:'all',label:'Tout'},{id:'t1',label:'T1'},{id:'t2',label:'T2'},{id:'t3',label:'T3'},{id:'t4',label:'T4'},{id:'t5',label:'T5'},{id:'t6',label:'T6'}];
@@ -208,11 +207,9 @@ function toast(msg,type='ok'){const t=document.getElementById('toast');t.textCon
 async function loadImages(){
   document.getElementById('grid').innerHTML=Array(6).fill('<div class="skeleton"></div>').join('');
   try{
-    const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
-      headers:{'X-Master-Key':BIN_KEY,'X-Bin-Meta':false}
-    });
+    const r=await fetch(`${API_BASE}/api/images`);
     const data=await r.json();
-    db=Array.isArray(data)?data:(data.images||[]);
+    db=Array.isArray(data)?data:[];
     renderGrid();
   }catch(e){
     db=[];
@@ -221,9 +218,9 @@ async function loadImages(){
 }
 
 async function saveDB(){
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+  await fetch(`${API_BASE}/api/images`,{
     method:'PUT',
-    headers:{'Content-Type':'application/json','X-Master-Key':BIN_KEY},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify(db)
   });
 }
