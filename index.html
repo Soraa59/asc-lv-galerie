@@ -97,9 +97,26 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
 .nav-btn.active-admin{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.08)}
 .nav-btn.add-btn{border-color:var(--gold);background:var(--gold);color:#0a0a0a;font-weight:500}
 .admin-badge{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.gate{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+.gate-logo{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:4px}
+.gate-sub{font-size:11px;color:var(--text3);letter-spacing:6px;margin-bottom:48px}
+.gate-divider{width:60px;height:1px;background:var(--gold);opacity:.3;margin-bottom:48px}
+.gate input{width:100%;max-width:280px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;letter-spacing:4px;outline:none;text-align:center;-webkit-appearance:none;margin-bottom:12px}
+.gate input::placeholder{letter-spacing:1px;font-size:13px;color:var(--text3)}
+.gate input:focus{border-color:var(--gold)}
+.gate-btn{width:100%;max-width:280px;padding:14px;border-radius:12px;border:none;background:var(--gold);color:#0a0a0a;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.5px}
+.gate-err{font-size:12px;color:#f87171;margin-top:8px;display:none}
 </style>
 </head>
 <body>
+<div class="gate" id="gate">
+  <div class="gate-logo">ASC — LV</div>
+  <div class="gate-sub">Galerie</div>
+  <div class="gate-divider"></div>
+  <input type="password" id="gate-inp" placeholder="Mot de passe" autocomplete="off">
+  <button class="gate-btn" onclick="checkGate()">Accéder</button>
+  <div class="gate-err" id="gate-err">Mot de passe incorrect</div>
+</div>
 <div id="toast" class="toast"></div>
 <button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
   <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
@@ -199,6 +216,36 @@ let active='all',db=[],isAdmin=false,pendingFile=null,uploading=false;
 let sortMode='desc',fsItems=[],fsIndex=0,touchStartX=0;
 let _sortCycle=['desc','asc','name'];
 
+async function checkGate(){
+  const v=document.getElementById('gate-inp').value;
+  if(!v)return;
+  const btn=document.querySelector('.gate-btn');
+  btn.textContent='...';btn.disabled=true;
+  try{
+    const r=await fetch(`${API_BASE}/api/auth`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:v})
+    });
+    const data=await r.json();
+    if(data.ok){
+      document.getElementById('gate').style.display='none';
+      try{sessionStorage.setItem('gate_ok','1');}catch{}
+    }else{
+      document.getElementById('gate-err').style.display='block';
+      document.getElementById('gate-inp').value='';
+    }
+  }catch{
+    document.getElementById('gate-err').style.display='block';
+  }finally{
+    btn.textContent='Accéder';btn.disabled=false;
+  }
+}
+document.getElementById('gate-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkGate();});
+function initGate(){
+  try{if(sessionStorage.getItem('gate_ok')==='1'){document.getElementById('gate').style.display='none';return;}}catch{}
+}
+initGate();
 function checkSession(){try{if(sessionStorage.getItem(SESSION_KEY)==='1'){isAdmin=true;updateAdminUI();}}catch{}}
 function saveSession(){try{sessionStorage.setItem(SESSION_KEY,'1');}catch{}}
 function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch{}}
