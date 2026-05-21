@@ -98,6 +98,9 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
 .nav-btn.add-btn{border-color:var(--gold);background:var(--gold);color:#0a0a0a;font-weight:500}
 .admin-badge{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold)}
 .card-date{font-size:9px;color:rgba(255,255,255,0.35);margin-top:2px}
+.select-overlay{position:absolute;inset:0;border-radius:14px;border:2px solid var(--gold);background:rgba(201,168,76,0.15);display:none;align-items:flex-start;justify-content:flex-end}
+.select-overlay.show{display:flex}
+.del-multi{border-color:rgba(192,57,43,0.4)!important;color:#f87171!important}
 .cat-btn.archives-btn{border-color:rgba(201,168,76,0.4);color:var(--text3)}
 .cat-btn.archives-btn.active{border-color:var(--gold);color:var(--gold)}
 .gate{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
@@ -201,6 +204,14 @@ html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-seri
     </button>
   </div>
   <div class="nav-section">
+    <button class="nav-btn" id="nav-select-btn" onclick="toggleSelectMode()" style="display:none">
+      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span id="select-label">Sélection</span>
+    </button>
+    <button class="nav-btn del-multi" id="del-multi-btn" onclick="deleteSelected()" style="display:none">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      <span id="del-multi-label">Supprimer</span>
+    </button>
     <button class="nav-btn add-btn" id="nav-add-btn" onclick="openAdd()" style="display:none">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Ajouter
@@ -217,6 +228,7 @@ const CATS=[{id:'all',label:'Tout'},{id:'t1',label:'T1'},{id:'t2',label:'T2'},{i
 const CAT_FULL={t1:'Afrique sub.',t2:'Maghreb',t3:'Asie',t4:'Europe occ.',t5:'Europe est',t6:'Latine'};
 let active='all',db=[],isAdmin=false,pendingFile=null,uploading=false;
 let sortMode='desc',fsItems=[],fsIndex=0,touchStartX=0;
+let selectMode=false,selected=new Set();
 let _sortCycle=['desc','asc','name'];
 
 async function checkGate(){
@@ -276,7 +288,17 @@ async function saveDB(){
 }
 
 function renderFilters(){
-  document.getElementById('filters').innerHTML=CATS.map(c=>`<button class="cat-btn${active===c.id?' active':''}" onclick="setFilter('${c.id}')">${c.label}</button>`).join('');
+  const now=Date.now();
+  const counts={};
+  CATS.forEach(c=>{
+    if(c.id==='all') counts[c.id]=db.filter(x=>!isArchived(x)).length;
+    else if(c.id==='archives') counts[c.id]=db.filter(x=>isArchived(x)).length;
+    else counts[c.id]=db.filter(x=>x.cat===c.id&&!isArchived(x)).length;
+  });
+  document.getElementById('filters').innerHTML=CATS.map(c=>{
+    const expiring=c.id!=='all'&&c.id!=='archives'?db.filter(x=>x.cat===c.id&&!isArchived(x)&&x.date&&(now-x.date)>25*24*60*60*1000).length:0;
+    return`<button class="cat-btn${active===c.id?' active':''}" onclick="setFilter('${c.id}')">${c.label}<span style="font-size:10px;opacity:.6;margin-left:3px">·${counts[c.id]||0}</span>${expiring>0?`<span style="width:6px;height:6px;border-radius:50%;background:#f87171;display:inline-block;margin-left:3px"></span>`:''}</button>`;
+  }).join('');
 }
 function setFilter(id){active=id;renderFilters();renderGrid();}
 function toggleSort(){let i=_sortCycle.indexOf(sortMode);sortMode=_sortCycle[(i+1)%3];document.getElementById('sort-btn').textContent=sortMode==='desc'?'Date ↓':sortMode==='asc'?'Date ↑':'Nom A-Z';renderGrid();}
@@ -300,10 +322,12 @@ function renderGrid(){
   document.getElementById('count-bar').textContent=items.length+' personnage'+(items.length!==1?'s':'');
   if(!items.length){grid.innerHTML='<div class="empty"><p>Aucun personnage trouvé</p></div>';return;}
   grid.className='grid'+(isAdmin?' admin-mode':'');
-  grid.innerHTML=items.map((img,i)=>`<div class="card" onclick="openFs(${i})">
+  grid.innerHTML=items.map((img,i)=>`<div class="card" onclick="cardClick('${img.id}',${i},event)">
     <img src="${img.url}" alt="${img.name}" loading="lazy">
     <div class="card-grad"></div>
     <div class="card-info"><div class="card-name">${img.name}</div><div class="card-cat">${CAT_FULL[img.cat]||img.cat}</div><div class="card-date">${img.date?new Date(img.date).toLocaleDateString('fr-FR'):''}</div></div>
+    ${img.date&&(Date.now()-img.date)>25*24*60*60*1000&&!isArchived(img)?'<div style="position:absolute;top:7px;left:7px;background:rgba(248,113,113,0.85);border-radius:8px;padding:2px 7px;font-size:10px;color:#fff;font-family:DM Sans,sans-serif">Expire bientôt</div>':''}
+    ${selectMode?`<div class="select-overlay${selected.has(img.id)?' show':''}" id="sel-${img.id}"><div style="width:22px;height:22px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;margin:8px 8px auto auto"><svg viewBox="0 0 24 24" width="12" height="12" style="stroke:#0a0a0a;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg></div></div>`:''}
     ${isAdmin?`<div class="card-actions">${isArchived(img)?`<button class="action-btn" onclick="restoreImg('${img.id}',event)" title="Restaurer"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>`:''}
 <button class="action-btn" onclick="deleteImg('${img.id}',event)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>`:''}
   </div>`).join('');
@@ -327,6 +351,42 @@ async function deleteImg(id,e){
   toast('Supprimé');
 }
 
+function cardClick(id,i,e){
+  if(e.target.closest('.action-btn'))return;
+  if(selectMode){toggleSelect(id);return;}
+  openFs(i);
+}
+function toggleSelectMode(){
+  selectMode=!selectMode;
+  selected.clear();
+  const btn=document.getElementById('nav-select-btn');
+  const label=document.getElementById('select-label');
+  if(selectMode){btn.classList.add('active-admin');label.textContent='Annuler';}
+  else{btn.classList.remove('active-admin');label.textContent='Sélection';document.getElementById('del-multi-btn').style.display='none';}
+  renderGrid();
+}
+function toggleSelect(id){
+  if(selected.has(id))selected.delete(id);else selected.add(id);
+  const el=document.getElementById('sel-'+id);
+  if(el)el.className='select-overlay'+(selected.has(id)?' show':'');
+  const btn=document.getElementById('del-multi-btn');
+  const label=document.getElementById('del-multi-label');
+  if(selected.size>0){btn.style.display='flex';label.textContent=`Supprimer (${selected.size})`;}
+  else{btn.style.display='none';}
+}
+async function deleteSelected(){
+  if(!selected.size)return;
+  if(!confirm(`Supprimer ${selected.size} image(s) ?`))return;
+  const ids=[...selected];
+  db=db.filter(x=>!ids.includes(x.id));
+  await saveDB();
+  selected.clear();selectMode=false;
+  document.getElementById('nav-select-btn').classList.remove('active-admin');
+  document.getElementById('select-label').textContent='Sélection';
+  document.getElementById('del-multi-btn').style.display='none';
+  renderGrid();renderFilters();
+  toast(ids.length+' image(s) supprimée(s)');
+}
 function openFs(i){fsIndex=i;updateFs();document.getElementById('fullscreen').classList.add('open');}
 function closeFs(){document.getElementById('fullscreen').classList.remove('open');}
 function updateFs(){const img=fsItems[fsIndex];if(!img)return;document.getElementById('fs-img').src=img.url;document.getElementById('fs-name').textContent=img.name;document.getElementById('fs-cat').textContent=(CAT_FULL[img.cat]||img.cat).toUpperCase();document.getElementById('fs-counter').textContent=(fsIndex+1)+' / '+fsItems.length;}
@@ -339,7 +399,7 @@ function toggleAdmin(){if(isAdmin){isAdmin=false;clearSession();updateAdminUI();
 function closeLogin(){document.getElementById('login-modal').classList.remove('open');}
 function checkPwd(){if(document.getElementById('pwd-inp').value===PWD){isAdmin=true;saveSession();closeLogin();updateAdminUI();toast('Mode admin activé');}else{document.getElementById('pwd-err').style.display='block';}}
 document.getElementById('pwd-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkPwd();});
-function updateAdminUI(){renderGrid();const a=document.getElementById('nav-add-btn'),l=document.getElementById('nav-lock-btn'),lb=document.getElementById('nav-lock-label');if(isAdmin){a.style.display='flex';l.classList.add('active-admin');lb.innerHTML='Admin <span class="admin-badge"></span>';}else{a.style.display='none';l.classList.remove('active-admin');lb.textContent='Admin';}}
+function updateAdminUI(){renderGrid();renderFilters();const a=document.getElementById('nav-add-btn'),l=document.getElementById('nav-lock-btn'),lb=document.getElementById('nav-lock-label'),s=document.getElementById('nav-select-btn');if(isAdmin){a.style.display='flex';s.style.display='flex';l.classList.add('active-admin');lb.innerHTML='Admin <span class="admin-badge"></span>';}else{a.style.display='none';s.style.display='none';l.classList.remove('active-admin');lb.textContent='Admin';selectMode=false;selected.clear();}}
 
 function openAdd(){pendingFile=null;document.getElementById('inp-name').value='';document.getElementById('inp-cat').value='';document.getElementById('preview-zone').innerHTML='<div class="preview-placeholder"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p>Appuyer pour choisir</p></div>';document.getElementById('file-inp').value='';document.getElementById('btn-submit').textContent='Ajouter';document.getElementById('btn-submit').disabled=false;document.getElementById('add-modal').classList.add('open');}
 function closeAdd(){document.getElementById('add-modal').classList.remove('open');}
