@@ -290,12 +290,13 @@ async function saveDB(){
 function renderFilters(){
   const now=Date.now();
   const counts={};
-  CATS.forEach(c=>{
+  const visibleCats=isAdmin?CATS:CATS.filter(c=>c.id!=='archives');
+  visibleCats.forEach(c=>{
     if(c.id==='all') counts[c.id]=db.filter(x=>!isArchived(x)).length;
     else if(c.id==='archives') counts[c.id]=db.filter(x=>isArchived(x)).length;
     else counts[c.id]=db.filter(x=>x.cat===c.id&&!isArchived(x)).length;
   });
-  document.getElementById('filters').innerHTML=CATS.map(c=>{
+  document.getElementById('filters').innerHTML=visibleCats.map(c=>{
     const expiring=c.id!=='all'&&c.id!=='archives'?db.filter(x=>x.cat===c.id&&!isArchived(x)&&x.date&&(now-x.date)>25*24*60*60*1000).length:0;
     return`<button class="cat-btn${active===c.id?' active':''}" onclick="setFilter('${c.id}')">${c.label}<span style="font-size:10px;opacity:.6;margin-left:3px">·${counts[c.id]||0}</span>${expiring>0?`<span style="width:6px;height:6px;border-radius:50%;background:#f87171;display:inline-block;margin-left:3px"></span>`:''}</button>`;
   }).join('');
